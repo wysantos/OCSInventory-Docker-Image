@@ -1,0 +1,52 @@
+version: '3'
+
+services:
+  ocsapplication:
+    image: ocsinventory/ocsinventory-docker-image:latest
+    container_name : ocsinventory-server
+    restart: unless-stopped
+    ports:
+      - 80:80
+      - 443:443
+    volumes:
+      - ./volumes/perlcomdata:/etc/ocsinventory-server
+      - ./volumes/extensionsdata:/usr/share/ocsinventory-reports/ocsreports/extensions
+      - ./volumes/varlibdata:/var/lib/ocsinventory-reports
+      - ./volumes/httpdconfdata:/etc/httpd/conf.d
+      - ./docker-entrypoint.sh:/usr/bin/docker-entrypoint.sh
+      - ./install.php:/opt/remi/php73/root/usr/share/php/install.php
+      - /etc/localtime:/etc/localtime:ro
+    environment:
+      OCS_DB_SERVER: ocsinventory-db
+      OCS_DB_USER: ocsuser
+      OCS_DB_PASS: ocspass
+      OCS_DB_NAME: ocsweb
+      # See documentation to set up SSL for MySQL
+      OCS_SSL_ENABLED: 0
+    links:
+      - ocsdb
+    networks:
+      - localocs
+    depends_on:
+      - ocsdb    
+
+  ocsdb :
+    image : mysql:5.7
+    container_name : ocsinventory-db
+    restart: unless-stopped
+    ports :
+      - 3306:3306
+    volumes :
+      - ./volumes/sql/:/docker-entrypoint-initdb.d/
+      - ./volumes/sqldata:/var/lib/mysql
+      - /etc/localtime:/etc/localtime:ro
+    environment:
+      MYSQL_ROOT_PASSWORD : rootpass
+      MYSQL_USER : ocsuser
+      MYSQL_PASSWORD : ocspass
+      MYSQL_DATABASE : ocsweb
+    networks:
+      - localocs
+  
+networks:
+  localocs:
